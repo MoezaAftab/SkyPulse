@@ -1,13 +1,63 @@
-const apiKey = "my api key";
+const searchForm = document.querySelector(".search-form");
+const cityInput = document.querySelector('input[name="city"]');
 
-async function testWeatherAPI() {
-    const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=Hyderabad&appid=${apiKey}&units=metric`
-    );
+function createDailyForecast(forecast) {
+    const dailyForecast = [];
 
-    const data = await response.json();
+    for (let i = 0; i < forecast.list.length; i++) {
+        const item = forecast.list[i];
 
-    console.log(data);
+        const date = item.dt_txt.split(" ")[0];
+        const time = item.dt_txt.split(" ")[1];
+
+        if (time === "12:00:00") {
+            dailyForecast.push({
+                date: date,
+                temp: item.main.temp,
+                condition: item.weather[0].description,
+                icon: item.weather[0].icon
+            });
+        }
+
+        if (dailyForecast.length === 5) {
+            break;
+        }
+    }
+
+    return dailyForecast;
 }
 
-testWeatherAPI();
+searchForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const city = cityInput.value.trim();
+
+    if (city === "") {
+        return;
+    }
+
+    try {
+    document.querySelector("#loading").style.display = "block";
+    document.querySelector("#error-message").style.display = "none";
+
+    const weather = await getWeather(city);
+    const forecast = await getForecast(city);
+
+    displayWeather(weather);
+
+    const dailyForecast = createDailyForecast(forecast);
+
+    displayForecast(dailyForecast);
+
+} catch (error) {
+    console.error(error.message);
+
+    const errorMessage = document.querySelector("#error-message");
+
+    errorMessage.textContent = error.message;
+    errorMessage.style.display = "block";
+
+} finally {
+    document.querySelector("#loading").style.display = "none";
+}
+});
